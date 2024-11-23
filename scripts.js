@@ -20,7 +20,7 @@ async function handleAuth(event) {
     const password = document.getElementById('password').value;
     const errorMessage = document.getElementById('errorMessage');
     const submitButton = document.getElementById('submitButton');
-    const endpoint = isLoginMode ? '/login' : '/register';
+    const endpoint = isLoginMode ? '/login.py' : '/register.py';
     
     errorMessage.textContent = '';
     submitButton.disabled = true;
