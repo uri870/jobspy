@@ -1,3 +1,18 @@
+// Configuration settings
+const API_CONFIG = {
+    protocol: 'http',
+    host: 'snowboard.sytes.net',
+    port: 5050,  // Default port, can be changed
+    basePath: '/auth'
+};
+
+// Function to build the API URL
+function getApiUrl(endpoint) {
+    const baseUrl = `${API_CONFIG.protocol}://${API_CONFIG.host}`;
+    const portString = API_CONFIG.port ? `:${API_CONFIG.port}` : '';
+    return `${baseUrl}${portString}${API_CONFIG.basePath}${endpoint}`;
+}
+
 async function handleLogin(event) {
     event.preventDefault();
     
@@ -14,7 +29,8 @@ async function handleLogin(event) {
     submitButton.textContent = 'Logging in...';
     
     try {
-        const response = await fetch('https://api.jobspy.com/auth/login', {
+        const loginUrl = getApiUrl('/login');
+        const response = await fetch(loginUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -44,6 +60,9 @@ async function handleLogin(event) {
         // Reset button state
         submitButton.disabled = false;
         submitButton.textContent = 'Login';
+        
+        // Log the error for debugging
+        console.error('Login error:', error);
     }
     
     return false;
@@ -70,3 +89,15 @@ document.getElementById('password').addEventListener('input', function(e) {
         e.target.setCustomValidity('');
     }
 });
+
+// Function to update API configuration
+function updateApiConfig(config) {
+    Object.assign(API_CONFIG, config);
+}
+
+// Example usage:
+// updateApiConfig({
+//     host: 'api.example.com',
+//     port: 8080,
+//     protocol: 'https'
+// });
