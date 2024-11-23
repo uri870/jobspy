@@ -1,25 +1,31 @@
 // Configuration settings
 const API_CONFIG = {
     protocol: 'https',
-    host: 'snowboard.sytes.net',
-    basePath: ''  // Removed /api since we're calling Python files directly
+    host: 'snowboard.sytes.net'
 };
 
 let isLoginMode = true;
 
 function getApiUrl(endpoint) {
     const baseUrl = `${API_CONFIG.protocol}://${API_CONFIG.host}`;
-    return `${baseUrl}/${endpoint}`;  // Updated to include leading slash
+    return `${baseUrl}/${endpoint}`;
 }
 
 async function handleAuth(event) {
-    event.preventDefault();
+    if (event) {
+        event.preventDefault();
+    }
     
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
+    const email = document.getElementById('email')?.value;
+    const password = document.getElementById('password')?.value;
     const errorMessage = document.getElementById('errorMessage');
     const submitButton = document.getElementById('submitButton');
-    // Updated endpoints to match your server files
+
+    if (!email || !password) {
+        errorMessage.textContent = 'Please enter both email and password';
+        return;
+    }
+    
     const endpoint = isLoginMode ? 'login.py' : 'register.py';
     
     errorMessage.textContent = '';
@@ -36,7 +42,6 @@ async function handleAuth(event) {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            mode: 'cors',
             credentials: 'include',
             body: JSON.stringify({
                 email: email.trim(),
@@ -46,61 +51,60 @@ async function handleAuth(event) {
         
         console.log('Response status:', response.status);
         
-        let data;
         const textResponse = await response.text();
         console.log('Raw response:', textResponse);
         
-        if (!textResponse) {
-            throw new Error('Server returned an empty response');
-        }
-
+        let data;
         try {
-            // Only try to parse as JSON if the response has content
-            data = textResponse.trim() ? JSON.parse(textResponse) : {};
+            data = JSON.parse(textResponse);
         } catch (parseError) {
             console.error('Response parsing error:', parseError);
-            console.error('Raw response:', textResponse);
-            throw new Error('Server response was not in the expected format. Please try again.');
+            throw new Error('Server response was not in the expected format');
         }
         
-        if (!response.ok) {
-            throw new Error(data.message || data.error || `${isLoginMode ? 'Login' : 'Registration'} failed. Please try again.`);
-        }
-        
-        // Check for success flag or token in response
-        if (data.success === false || (!data.token && !data.success)) {
+        if (data.status === 'error') {
             throw new Error(data.message || 'Authentication failed');
         }
-
-        // If we have a token, store it
+        
         if (data.token) {
             localStorage.setItem('jobspyToken', data.token);
+            window.location.href = '/dashboard.html';
+        } else {
+            throw new Error('No authentication token received');
         }
-        
-        // Redirect to dashboard on success
-        window.location.href = '/dashboard.html';
         
     } catch (error) {
         console.error(`${isLoginMode ? 'Login' : 'Registration'} error:`, error);
         errorMessage.textContent = error.message || 'An unexpected error occurred. Please try again.';
+    } finally {
         submitButton.disabled = false;
         submitButton.textContent = isLoginMode ? 'Login' : 'Create Account';
     }
 }
 
 function toggleAuthMode(e) {
-    e.preventDefault();
+    if (e) {
+        e.preventDefault();
+    }
+    
     isLoginMode = !isLoginMode;
     const submitButton = document.getElementById('submitButton');
     const toggleButton = document.getElementById('toggleAuth');
     
-    submitButton.textContent = isLoginMode ? 'Login' : 'Create Account';
-    toggleButton.textContent = isLoginMode ? 'Create Account' : 'Back to Login';
-    document.getElementById('errorMessage').textContent = '';
-    document.getElementById('authForm').reset(); // Clear form when switching modes
+    if (submitButton && toggleButton) {
+        submitButton.textContent = isLoginMode ? 'Login' : 'Create Account';
+        toggleButton.textContent = isLoginMode ? 'Create Account' : 'Back to Login';
+        const errorMessage = document.getElementById('errorMessage');
+        if (errorMessage) {
+            errorMessage.textContent = '';
+        }
+        const authForm = document.getElementById('authForm');
+        if (authForm) {
+            authForm.reset();
+        }
+    }
 }
 
-// Add event listeners once DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     const authForm = document.getElementById('authForm');
     const toggleAuth = document.getElementById('toggleAuth');
