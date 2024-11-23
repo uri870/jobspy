@@ -68,7 +68,7 @@ async function handleAuth(event) {
         
         if (data.token) {
             localStorage.setItem('jobspyToken', data.token);
-            window.location.href = 'jobspy/dashboard.html';
+            window.location.href = 'dashboard.html';
         } else {
             throw new Error('No authentication token received');
         }
