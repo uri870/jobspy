@@ -1,70 +1,51 @@
-// Configuration settings
-const API_CONFIG = {
-    protocol: 'https',
-    host: 'snowboard.sytes.net',
-    basePath: ''
-};
-
-function getApiUrl(endpoint) {
-    const baseUrl = `${API_CONFIG.protocol}://${API_CONFIG.host}`;
-    return `${baseUrl}${endpoint}`;
-}
-
-async function handleAuth(endpoint) {
+async function handleRegister(event) {
+    event.preventDefault();
+    
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const errorMessage = document.getElementById('errorMessage');
     const submitButton = document.querySelector('button[type="submit"]');
-    const isRegistration = endpoint === 'register.py';
     
     errorMessage.textContent = '';
     submitButton.disabled = true;
-    submitButton.textContent = isRegistration ? 'Creating Account...' : 'Logging in...';
+    submitButton.textContent = 'Creating Account...';
     
     try {
-        const url = getApiUrl(`/${endpoint}`);
-        console.log('Sending request to:', url); // Debug log
-        
-        const response = await fetch(url, {
+        const response = await fetch('https://snowboard.sytes.net/register.py', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Content-Type': 'application/json'
             },
-            mode: 'cors',
-            credentials: 'include',
             body: JSON.stringify({
                 email,
                 password
             })
         });
         
-        // Debug log
+        // Log response for debugging
         console.log('Response status:', response.status);
-        console.log('Response headers:', Object.fromEntries([...response.headers]));
+        const textResponse = await response.text();
+        console.log('Raw response:', textResponse);
         
         let data;
-        const textResponse = await response.text(); // Get raw response text
-        console.log('Raw response:', textResponse); // Debug log
-        
         try {
             data = JSON.parse(textResponse);
-        } catch (parseError) {
-            console.error('JSON parse error:', parseError);
-            throw new Error('Invalid server response format');
+        } catch (e) {
+            throw new Error('Invalid server response');
         }
         
-        if (!response.ok) {
-            throw new Error(data.message || `${isRegistration ? 'Registration' : 'Login'} failed`);
+        if (data.status === 'error') {
+            throw new Error(data.message);
         }
         
+        // Store token and redirect
         localStorage.setItem('jobspyToken', data.token);
         window.location.href = '/dashboard.html';
         
     } catch (error) {
-        console.error(`${isRegistration ? 'Registration' : 'Login'} error:`, error);
+        console.error('Registration error:', error);
         errorMessage.textContent = error.message;
         submitButton.disabled = false;
-        submitButton.textContent = isRegistration ? 'Create Account' : 'Login';
+        submitButton.textContent = 'Create Account';
     }
 }
