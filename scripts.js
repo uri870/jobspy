@@ -1,16 +1,14 @@
 // Configuration settings
 const API_CONFIG = {
-    protocol: 'http',
+    protocol: 'https',
     host: 'snowboard.sytes.net',
-    port: 5050,
-    basePath: '/auth'
+    basePath: ''  // The script will be in the root directory
 };
 
 // Function to build the API URL
 function getApiUrl(endpoint) {
     const baseUrl = `${API_CONFIG.protocol}://${API_CONFIG.host}`;
-    const portString = API_CONFIG.port ? `:${API_CONFIG.port}` : '';
-    return `${baseUrl}${portString}${API_CONFIG.basePath}${endpoint}`;
+    return `${baseUrl}${endpoint}`;
 }
 
 async function handleLogin(event) {
@@ -26,15 +24,16 @@ async function handleLogin(event) {
     submitButton.textContent = 'Logging in...';
     
     try {
-        const loginUrl = getApiUrl('/login');
+        const loginUrl = getApiUrl('/login.py');  // Make sure this matches your file name
+        
         const response = await fetch(loginUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            credentials: 'include',  // Include credentials in the request
-            mode: 'cors',           // Enable CORS mode
+            mode: 'cors',
+            credentials: 'include',
             body: JSON.stringify({
                 email,
                 password
@@ -52,44 +51,8 @@ async function handleLogin(event) {
         
     } catch (error) {
         console.error('Login error:', error);
-        errorMessage.textContent = 'Login failed. Please check your credentials and try again.';
+        errorMessage.textContent = `Login failed: ${error.message}`;
         submitButton.disabled = false;
         submitButton.textContent = 'Login';
     }
-    
-    return false;
 }
-
-// Add input validation
-document.getElementById('email').addEventListener('input', function(e) {
-    const email = e.target.value;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    
-    if (!emailRegex.test(email)) {
-        e.target.setCustomValidity('Please enter a valid email address');
-    } else {
-        e.target.setCustomValidity('');
-    }
-});
-
-document.getElementById('password').addEventListener('input', function(e) {
-    const password = e.target.value;
-    
-    if (password.length < 6) {
-        e.target.setCustomValidity('Password must be at least 6 characters long');
-    } else {
-        e.target.setCustomValidity('');
-    }
-});
-
-// Function to update API configuration
-function updateApiConfig(config) {
-    Object.assign(API_CONFIG, config);
-}
-
-// Example usage:
-// updateApiConfig({
-//     host: 'api.example.com',
-//     port: 8080,
-//     protocol: 'https'
-// });
