@@ -2,14 +2,14 @@
 const API_CONFIG = {
     protocol: 'https',
     host: 'snowboard.sytes.net',
-    basePath: '/api'  // Added /api basePath
+    basePath: ''  // Removed /api since we're calling Python files directly
 };
 
 let isLoginMode = true;
 
 function getApiUrl(endpoint) {
-    const baseUrl = `${API_CONFIG.protocol}://${API_CONFIG.host}${API_CONFIG.basePath}`;
-    return `${baseUrl}${endpoint}`;
+    const baseUrl = `${API_CONFIG.protocol}://${API_CONFIG.host}`;
+    return `${baseUrl}/${endpoint}`;  // Updated to include leading slash
 }
 
 async function handleAuth(event) {
@@ -19,8 +19,8 @@ async function handleAuth(event) {
     const password = document.getElementById('password').value;
     const errorMessage = document.getElementById('errorMessage');
     const submitButton = document.getElementById('submitButton');
-    // Updated endpoints to match server structure
-    const endpoint = isLoginMode ? '/auth/login' : '/auth/register';
+    // Updated endpoints to match your server files
+    const endpoint = isLoginMode ? 'login.py' : 'register.py';
     
     errorMessage.textContent = '';
     submitButton.disabled = true;
@@ -60,30 +60,24 @@ async function handleAuth(event) {
         } catch (parseError) {
             console.error('Response parsing error:', parseError);
             console.error('Raw response:', textResponse);
-            throw new Error('The server returned an invalid response format. Please try again later.');
+            throw new Error('Server response was not in the expected format. Please try again.');
         }
         
         if (!response.ok) {
-            // Handle specific HTTP status codes
-            switch (response.status) {
-                case 404:
-                    throw new Error('The authentication service is currently unavailable. Please try again later.');
-                case 401:
-                    throw new Error('Invalid email or password');
-                case 403:
-                    throw new Error('Access denied. Please check your credentials.');
-                default:
-                    throw new Error(data.message || data.error || `${isLoginMode ? 'Login' : 'Registration'} failed. Please try again.`);
-            }
+            throw new Error(data.message || data.error || `${isLoginMode ? 'Login' : 'Registration'} failed. Please try again.`);
         }
         
-        // Check if we have a valid token in the response
-        if (!data.token) {
-            throw new Error('Authentication failed: No valid token received');
+        // Check for success flag or token in response
+        if (data.success === false || (!data.token && !data.success)) {
+            throw new Error(data.message || 'Authentication failed');
         }
 
-        // Store the token and redirect
-        localStorage.setItem('jobspyToken', data.token);
+        // If we have a token, store it
+        if (data.token) {
+            localStorage.setItem('jobspyToken', data.token);
+        }
+        
+        // Redirect to dashboard on success
         window.location.href = '/dashboard.html';
         
     } catch (error) {
