@@ -10,11 +10,11 @@
     <div class="container">
         <div class="login-box">
             <div class="logo">
-                <h1 id="formTitle">JobSpy</h1>
+                <h1>JobSpy</h1>
                 <p>Track Your Job Search Journey</p>
             </div>
             
-            <form id="authForm" onsubmit="return handleSubmit(event)">
+            <form id="loginForm" onsubmit="return handleLogin(event)">
                 <div class="form-group">
                     <label for="email">Email</label>
                     <input type="email" id="email" name="email" required>
@@ -26,7 +26,7 @@
                 </div>
                 
                 <div class="form-group">
-                    <button type="submit" id="submitButton">Login</button>
+                    <button type="submit">Login</button>
                 </div>
                 
                 <div id="errorMessage" class="error-message"></div>
@@ -34,96 +34,10 @@
             
             <div class="links">
                 <a href="#" class="forgot-password">Forgot Password?</a>
-                <a href="#" id="toggleMode" class="create-account">Create Account</a>
+                <a href="#" class="create-account">Create Account</a>
             </div>
         </div>
     </div>
-    <script>
-        let isLoginMode = true;
-
-        // Function to toggle between login and register modes
-        function toggleMode(event) {
-            event.preventDefault();
-            isLoginMode = !isLoginMode;
-            
-            const formTitle = document.getElementById('formTitle');
-            const submitButton = document.getElementById('submitButton');
-            const toggleButton = document.getElementById('toggleMode');
-            const errorMessage = document.getElementById('errorMessage');
-            
-            // Clear any error messages
-            errorMessage.textContent = '';
-            
-            if (isLoginMode) {
-                formTitle.textContent = 'JobSpy - Login';
-                submitButton.textContent = 'Login';
-                toggleButton.textContent = 'Create Account';
-            } else {
-                formTitle.textContent = 'JobSpy - Register';
-                submitButton.textContent = 'Create Account';
-                toggleButton.textContent = 'Back to Login';
-            }
-        }
-
-        // Handle form submission
-        async function handleSubmit(event) {
-            event.preventDefault();
-            
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const errorMessage = document.getElementById('errorMessage');
-            const submitButton = document.getElementById('submitButton');
-            
-            errorMessage.textContent = '';
-            submitButton.disabled = true;
-            
-            try {
-                const endpoint = isLoginMode ? '/login.py' : '/register.py';
-                submitButton.textContent = isLoginMode ? 'Logging in...' : 'Creating Account...';
-                
-                const response = await fetch(`https://snowboard.sytes.net${endpoint}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email,
-                        password
-                    })
-                });
-                
-                // Log response for debugging
-                console.log('Response status:', response.status);
-                const textResponse = await response.text();
-                console.log('Raw response:', textResponse);
-                
-                let data;
-                try {
-                    data = JSON.parse(textResponse);
-                } catch (e) {
-                    throw new Error('Invalid server response');
-                }
-                
-                if (data.status === 'error') {
-                    throw new Error(data.message);
-                }
-                
-                // Store token and redirect
-                localStorage.setItem('jobspyToken', data.token);
-                window.location.href = '/dashboard.html';
-                
-            } catch (error) {
-                console.error(isLoginMode ? 'Login error:' : 'Registration error:', error);
-                errorMessage.textContent = error.message;
-                submitButton.disabled = false;
-                submitButton.textContent = isLoginMode ? 'Login' : 'Create Account';
-            }
-            
-            return false;
-        }
-
-        // Add event listener for mode toggle
-        document.getElementById('toggleMode').addEventListener('click', toggleMode);
-    </script>
+    <script src="scripts.js"></script>
 </body>
 </html>
