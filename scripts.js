@@ -1,32 +1,26 @@
 // Configuration settings
 const API_CONFIG = {
     protocol: 'https',
-    host: 'snowboard.sytes.net'
+    host: 'snowboard.sytes.net',
+    basePath: ''  // Removed /api since we're calling Python files directly
 };
 
 let isLoginMode = true;
 
 function getApiUrl(endpoint) {
     const baseUrl = `${API_CONFIG.protocol}://${API_CONFIG.host}`;
-    return `${baseUrl}/${endpoint}`;
+    return `${baseUrl}/${endpoint}`;  // Updated to include leading slash
 }
 
 async function handleAuth(event) {
-    if (event) {
-        event.preventDefault();
-    }
+    event.preventDefault();
     
-    const email = document.getElementById('email')?.value;
-    const password = document.getElementById('password')?.value;
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
     const errorMessage = document.getElementById('errorMessage');
     const submitButton = document.getElementById('submitButton');
-
-    if (!email || !password) {
-        errorMessage.textContent = 'Please enter both email and password';
-        return;
-    }
-    
-    const endpoint = isLoginMode ? 'login.php' : 'register.py';  // Note: Using .php for login
+    // Updated endpoints to match your server files
+    const endpoint = isLoginMode ? 'login.py' : 'register.py';
     
     errorMessage.textContent = '';
     submitButton.disabled = true;
@@ -34,100 +28,76 @@ async function handleAuth(event) {
     
     try {
         const url = getApiUrl(endpoint);
+        console.log('Sending request to:', url);
         
-        // Create form data instead of JSON
-        const formData = new FormData();
-        formData.append('email', email.trim());
-        formData.append('password', password);
-
         const response = await fetch(url, {
             method: 'POST',
-            // Don't set Content-Type header - let browser set it with boundary for FormData
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            mode: 'cors',
             credentials: 'include',
-            body: formData
+            body: JSON.stringify({
+                email: email.trim(),
+                password: password
+            })
         });
         
-        // If the response is a redirect, follow it
-        if (response.redirected) {
-            window.location.href = response.url;
-            return;
+        console.log('Response status:', response.status);
+        
+        let data;
+        const textResponse = await response.text();
+        console.log('Raw response:', textResponse);
+        
+        if (!textResponse) {
+            throw new Error('Server returned an empty response');
         }
 
-        const textResponse = await response.text();
-        let data;
-        
         try {
-            // Only try to parse if it looks like JSON
-            if (textResponse.trim().startsWith('{') || textResponse.trim().startsWith('[')) {
-                data = JSON.parse(textResponse);
-            } else {
-                // Handle non-JSON responses
-                if (textResponse.includes('success') || textResponse.includes('logged in')) {
-                    // Successful login/register with non-JSON response
-                    window.location.href = '/dashboard.html';
-                    return;
-                }
-                throw new Error('Invalid response format');
-            }
+            // Only try to parse as JSON if the response has content
+            data = textResponse.trim() ? JSON.parse(textResponse) : {};
         } catch (parseError) {
             console.error('Response parsing error:', parseError);
             console.error('Raw response:', textResponse);
-            
-            // If the response contains HTML, it might be a redirect or error page
-            if (textResponse.includes('<!DOCTYPE html>') || textResponse.includes('<html>')) {
-                if (textResponse.toLowerCase().includes('success') || textResponse.toLowerCase().includes('welcome')) {
-                    window.location.href = '/dashboard.html';
-                    return;
-                }
-            }
-            
-            throw new Error('Server response was not in the expected format');
+            throw new Error('Server response was not in the expected format. Please try again.');
         }
         
         if (!response.ok) {
-            throw new Error(data?.message || data?.error || `${isLoginMode ? 'Login' : 'Registration'} failed`);
+            throw new Error(data.message || data.error || `${isLoginMode ? 'Login' : 'Registration'} failed. Please try again.`);
         }
         
-        // Handle successful JSON response
-        if (data.success || data.token) {
-            if (data.token) {
-                localStorage.setItem('jobspyToken', data.token);
-            }
-            window.location.href = '/dashboard.html';
-        } else {
+        // Check for success flag or token in response
+        if (data.success === false || (!data.token && !data.success)) {
             throw new Error(data.message || 'Authentication failed');
         }
+
+        // If we have a token, store it
+        if (data.token) {
+            localStorage.setItem('jobspyToken', data.token);
+        }
+        
+        // Redirect to dashboard on success
+        window.location.href = '/dashboard.html';
         
     } catch (error) {
         console.error(`${isLoginMode ? 'Login' : 'Registration'} error:`, error);
         errorMessage.textContent = error.message || 'An unexpected error occurred. Please try again.';
-    } finally {
         submitButton.disabled = false;
         submitButton.textContent = isLoginMode ? 'Login' : 'Create Account';
     }
 }
 
 function toggleAuthMode(e) {
-    if (e) {
-        e.preventDefault();
-    }
-    
+    e.preventDefault();
     isLoginMode = !isLoginMode;
     const submitButton = document.getElementById('submitButton');
     const toggleButton = document.getElementById('toggleAuth');
     
-    if (submitButton && toggleButton) {
-        submitButton.textContent = isLoginMode ? 'Login' : 'Create Account';
-        toggleButton.textContent = isLoginMode ? 'Create Account' : 'Back to Login';
-        const errorMessage = document.getElementById('errorMessage');
-        if (errorMessage) {
-            errorMessage.textContent = '';
-        }
-        const authForm = document.getElementById('authForm');
-        if (authForm) {
-            authForm.reset();
-        }
-    }
+    submitButton.textContent = isLoginMode ? 'Login' : 'Create Account';
+    toggleButton.textContent = isLoginMode ? 'Create Account' : 'Back to Login';
+    document.getElementById('errorMessage').textContent = '';
+    document.getElementById('authForm').reset(); // Clear form when switching modes
 }
 
 // Add event listeners once DOM is loaded
@@ -139,6 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
         authForm.addEventListener('submit', handleAuth);
         toggleAuth.addEventListener('click', toggleAuthMode);
     } else {
-        console.error('Required DOM elements not found. Please check your HTML structure.');
+        console.error('Required DOM elements not found');
     }
 });
