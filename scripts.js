@@ -5,25 +5,30 @@ const API_CONFIG = {
     basePath: ''
 };
 
+// Track whether we're in login or registration mode
+let isLoginMode = true;
+
 function getApiUrl(endpoint) {
     const baseUrl = `${API_CONFIG.protocol}://${API_CONFIG.host}`;
     return `${baseUrl}${endpoint}`;
 }
 
-async function handleAuth(endpoint) {
+async function handleAuth(event) {
+    event.preventDefault();
+    
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const errorMessage = document.getElementById('errorMessage');
-    const submitButton = document.querySelector('button[type="submit"]');
-    const isRegistration = endpoint === 'register.py';
+    const submitButton = document.getElementById('submitButton');
+    const endpoint = isLoginMode ? '/login' : '/register';
     
     errorMessage.textContent = '';
     submitButton.disabled = true;
-    submitButton.textContent = isRegistration ? 'Creating Account...' : 'Logging in...';
+    submitButton.textContent = isLoginMode ? 'Logging in...' : 'Creating Account...';
     
     try {
-        const url = getApiUrl(`/${endpoint}`);
-        console.log('Sending request to:', url); // Debug log
+        const url = getApiUrl(endpoint);
+        console.log('Sending request to:', url);
         
         const response = await fetch(url, {
             method: 'POST',
@@ -39,14 +44,13 @@ async function handleAuth(endpoint) {
             })
         });
         
-        // Debug log
         console.log('Response status:', response.status);
         console.log('Response headers:', Object.fromEntries([...response.headers]));
         
-        let data;
-        const textResponse = await response.text(); // Get raw response text
-        console.log('Raw response:', textResponse); // Debug log
+        const textResponse = await response.text();
+        console.log('Raw response:', textResponse);
         
+        let data;
         try {
             data = JSON.parse(textResponse);
         } catch (parseError) {
@@ -55,16 +59,34 @@ async function handleAuth(endpoint) {
         }
         
         if (!response.ok) {
-            throw new Error(data.message || `${isRegistration ? 'Registration' : 'Login'} failed`);
+            throw new Error(data.message || `${isLoginMode ? 'Login' : 'Registration'} failed`);
         }
         
         localStorage.setItem('jobspyToken', data.token);
         window.location.href = '/dashboard.html';
         
     } catch (error) {
-        console.error(`${isRegistration ? 'Registration' : 'Login'} error:`, error);
+        console.error(`${isLoginMode ? 'Login' : 'Registration'} error:`, error);
         errorMessage.textContent = error.message;
         submitButton.disabled = false;
-        submitButton.textContent = isRegistration ? 'Create Account' : 'Login';
+        submitButton.textContent = isLoginMode ? 'Login' : 'Create Account';
     }
 }
+
+// Handle toggling between login and registration modes
+function toggleAuthMode(e) {
+    e.preventDefault();
+    isLoginMode = !isLoginMode;
+    const submitButton = document.getElementById('submitButton');
+    const toggleButton = document.getElementById('toggleAuth');
+    
+    submitButton.textContent = isLoginMode ? 'Login' : 'Create Account';
+    toggleButton.textContent = isLoginMode ? 'Create Account' : 'Back to Login';
+    document.getElementById('errorMessage').textContent = '';
+}
+
+// Add event listeners once DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('authForm').addEventListener('submit', handleAuth);
+    document.getElementById('toggleAuth').addEventListener('click', toggleAuthMode);
+});
