@@ -10,16 +10,6 @@ function getApiUrl(endpoint) {
     return `${baseUrl}${endpoint}`;
 }
 
-async function handleLogin(event) {
-    event.preventDefault();
-    await handleAuth('login.py');
-}
-
-async function handleRegister(event) {
-    event.preventDefault();
-    await handleAuth('register.py');
-}
-
 async function handleAuth(endpoint) {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
@@ -33,6 +23,7 @@ async function handleAuth(endpoint) {
     
     try {
         const url = getApiUrl(`/${endpoint}`);
+        console.log('Sending request to:', url); // Debug log
         
         const response = await fetch(url, {
             method: 'POST',
@@ -48,7 +39,20 @@ async function handleAuth(endpoint) {
             })
         });
         
-        const data = await response.json();
+        // Debug log
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries([...response.headers]));
+        
+        let data;
+        const textResponse = await response.text(); // Get raw response text
+        console.log('Raw response:', textResponse); // Debug log
+        
+        try {
+            data = JSON.parse(textResponse);
+        } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            throw new Error('Invalid server response format');
+        }
         
         if (!response.ok) {
             throw new Error(data.message || `${isRegistration ? 'Registration' : 'Login'} failed`);
@@ -64,59 +68,3 @@ async function handleAuth(endpoint) {
         submitButton.textContent = isRegistration ? 'Create Account' : 'Login';
     }
 }
-
-// Add input validation
-document.getElementById('email').addEventListener('input', function(e) {
-    const email = e.target.value;
-    const emailRegex = /^[\w\.-]+@[\w\.-]+\.\w+$/;
-    
-    if (!emailRegex.test(email)) {
-        e.target.setCustomValidity('Please enter a valid email address');
-    } else {
-        e.target.setCustomValidity('');
-    }
-});
-
-document.getElementById('password').addEventListener('input', function(e) {
-    const password = e.target.value;
-    let message = '';
-    
-    if (password.length < 8) {
-        message += 'Password must be at least 8 characters long\n';
-    }
-    if (!/[A-Z]/.test(password)) {
-        message += 'Password must contain at least one uppercase letter\n';
-    }
-    if (!/[a-z]/.test(password)) {
-        message += 'Password must contain at least one lowercase letter\n';
-    }
-    if (!/\d/.test(password)) {
-        message += 'Password must contain at least one number';
-    }
-    
-    e.target.setCustomValidity(message);
-});
-
-// Update the create account button click handler
-document.querySelector('.create-account').addEventListener('click', function(e) {
-    e.preventDefault();
-    const form = document.getElementById('loginForm');
-    const submitButton = form.querySelector('button[type="submit"]');
-    const title = document.querySelector('.logo h1');
-    
-    if (form.getAttribute('data-mode') === 'register') {
-        // Switch to login mode
-        form.setAttribute('data-mode', 'login');
-        submitButton.textContent = 'Login';
-        title.textContent = 'JobSpy - Login';
-        this.textContent = 'Create Account';
-        form.onsubmit = handleLogin;
-    } else {
-        // Switch to register mode
-        form.setAttribute('data-mode', 'register');
-        submitButton.textContent = 'Create Account';
-        title.textContent = 'JobSpy - Register';
-        this.textContent = 'Back to Login';
-        form.onsubmit = handleRegister;
-    }
-});
