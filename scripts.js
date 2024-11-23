@@ -2,7 +2,7 @@
 const API_CONFIG = {
     protocol: 'http',
     host: 'snowboard.sytes.net',
-    port: 5050,  // Default port, can be changed
+    port: 5050,
     basePath: '/auth'
 };
 
@@ -21,10 +21,7 @@ async function handleLogin(event) {
     const errorMessage = document.getElementById('errorMessage');
     const submitButton = document.querySelector('button[type="submit"]');
     
-    // Reset error message
     errorMessage.textContent = '';
-    
-    // Disable submit button and show loading state
     submitButton.disabled = true;
     submitButton.textContent = 'Logging in...';
     
@@ -33,8 +30,11 @@ async function handleLogin(event) {
         const response = await fetch(loginUrl, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
             },
+            credentials: 'include',  // Include credentials in the request
+            mode: 'cors',           // Enable CORS mode
             body: JSON.stringify({
                 email,
                 password
@@ -47,22 +47,14 @@ async function handleLogin(event) {
             throw new Error(data.message || 'Login failed');
         }
         
-        // Store the token in localStorage
         localStorage.setItem('jobspyToken', data.token);
-        
-        // Redirect to dashboard
         window.location.href = '/dashboard.html';
         
     } catch (error) {
-        // Display error message
-        errorMessage.textContent = error.message || 'An error occurred during login';
-        
-        // Reset button state
+        console.error('Login error:', error);
+        errorMessage.textContent = 'Login failed. Please check your credentials and try again.';
         submitButton.disabled = false;
         submitButton.textContent = 'Login';
-        
-        // Log the error for debugging
-        console.error('Login error:', error);
     }
     
     return false;
