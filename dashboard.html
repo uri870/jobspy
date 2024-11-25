@@ -1,3 +1,17 @@
-<h1>dashboard</h1>
-<script src="auth-guard.js"></script>
-<button onclick="logout()">Logout</button>
+<!-- dashboard.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/netlify-identity-widget@1/build/netlify-identity-widget.min.js"></script>
+</head>
+<body>
+    <h1>Dashboard</h1>
+    <div data-netlify-identity-button></div>
+    <script>
+        netlifyIdentity.on('logout', () => {
+            window.location.href = '/';
+        });
+    </script>
+</body>
+</html>
